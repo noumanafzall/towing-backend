@@ -1,0 +1,751 @@
+{
+  "info": {
+    "name": "Movca API",
+    "description": "API collection for Movca transportation service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Driver",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"driver@example.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"fullName\": \"John Driver\",\n  \"phoneNumber\": \"+1234567890\",\n  \"country\": \"United States\",\n  \"city\": \"New York\",\n  \"termsAccepted\": true,\n  \"languages\": [\"English\", \"Spanish\"],\n  \"experience\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register/driver",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register", "driver"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register/customer",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register", "customer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.customer@example.com\",\n  \"password\": \"Test123!@#\",\n  \"confirmPassword\": \"Test123!@#\",\n  \"fullName\": \"Jane Customer\",\n  \"phoneNumber\": \"+1987654321\",\n  \"country\": \"United States\",\n  \"zipcode\": \"54321\",\n  \"city\": \"New York\",\n  \"termsAccepted\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Test123!@#\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Drivers",
+      "item": [
+        {
+          "name": "Get All Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drivers?skip=0&take=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Driver by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["drivers", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Driver Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/:id/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["drivers", ":id", "profile"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"fullName\": \"John Updated Driver\",\n    \"phoneNumber\": \"+1234567890\",\n    \"country\": \"United States\",\n    \"zipcode\": \"12345\"\n  },\n  \"languages\": [\"English\", \"Spanish\"],\n  \"experience\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Driver Tax Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/:id/tax-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["drivers", ":id", "tax-profile"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Driver Tax Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/driver-info/:driverProfileId/tax-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["drivers", "driver-info", ":driverProfileId", "tax-profile"],
+              "variable": [
+                {
+                  "key": "driverProfileId",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalName\": \"John Driver LLC\",\n  \"ssnOrEin\": \"123-45-6789\",\n  \"mailingAddress\": \"123 Driver St, City, State 12345\",\n  \"consent1099\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Approve Driver",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/driver-info/:id/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["drivers", "driver-info", ":id", "approve"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"]
+            }
+          }
+        },
+        {
+          "name": "Get Customer Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/count",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "count"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rides",
+      "item": [
+        {
+          "name": "Create Ride",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rides",
+              "host": ["{{baseUrl}}"],
+              "path": ["rides"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": 1,\n  \"customerId\": 2,\n  \"pickupLocation\": \"40.7128,-74.0060\",\n  \"dropoffLocation\": \"40.7614,-73.9776\",\n  \"pickupDateTime\": \"2024-03-20T10:00:00Z\",\n  \"expectedDropoff\": \"2024-03-20T11:00:00Z\",\n  \"estimatedDistance\": 10.5,\n  \"basePrice\": 50.00,\n  \"customerVehicle\": {\n    \"plateNumber\": \"ABC123\",\n    \"vehicleType\": \"Sedan\",\n    \"color\": \"Black\"\n  },\n  \"notes\": \"Please handle with care\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Rides",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rides?skip=0&take=10&status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["rides"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Ride by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rides/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["rides", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Ride Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rides/:id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["rides", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"cancellationReason\": \"Customer requested cancellation\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Location",
+      "item": [
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/location/:rideId",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", ":rideId"],
+              "variable": [
+                {
+                  "key": "rideId",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 40.7128,\n  \"longitude\": -74.0060,\n  \"speed\": 35.5,\n  \"heading\": 90,\n  \"accuracy\": 5.0\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Last Location",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/location/:rideId/last",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", ":rideId", "last"],
+              "variable": [
+                {
+                  "key": "rideId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Location History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/location/:rideId/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["location", ":rideId", "history"],
+              "variable": [
+                {
+                  "key": "rideId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Wallet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/:userId/transactions?skip=0&take=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", ":userId", "transactions"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "10"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/:userId/deposit",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", ":userId", "deposit"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"method\": \"CARD\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Withdraw",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/:userId/withdraw",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", ":userId", "withdraw"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50.00,\n  \"method\": \"BANK\",\n  \"bankName\": \"Example Bank\",\n  \"accountNumber\": \"****1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Process Ride Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/ride/:rideId/payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "ride", ":rideId", "payment"],
+              "variable": [
+                {
+                  "key": "rideId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Google Maps",
+      "item": [
+        {
+          "name": "Get Directions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/google-maps/directions?origin=40.7128,-74.0060&destination=40.7614,-73.9776",
+              "host": ["{{baseUrl}}"],
+              "path": ["google-maps", "directions"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "40.7128,-74.0060",
+                  "description": "Origin location (latitude,longitude) or address"
+                },
+                {
+                  "key": "destination",
+                  "value": "40.7614,-73.9776",
+                  "description": "Destination location (latitude,longitude) or address"
+                }
+              ]
+            },
+            "description": "Get directions between two points. You can use either coordinates (lat,lng) or addresses."
+          }
+        },
+        {
+          "name": "Places Autocomplete",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/google-maps/places/autocomplete?query=",
+              "host": ["{{baseUrl}}"],
+              "path": ["google-maps", "places", "autocomplete"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Place Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/google-maps/places/details?placeId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["google-maps", "places", "details"],
+              "query": [
+                {
+                  "key": "placeId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Client Key",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/google-maps/client-key",
+              "host": ["{{baseUrl}}"],
+              "path": ["google-maps", "client-key"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+} 

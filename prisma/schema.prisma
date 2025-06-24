@@ -1,0 +1,302 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DRIVER
+  CUSTOMER
+  SUPER_ADMIN
+  LIMITED_ADMIN
+}
+
+enum RegistrationStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+enum RideStatus {
+  PENDING
+  ACCEPTED
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  RIDE_PAYMENT
+  RIDE_EARNING
+  REFUND
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  WALLET
+  CARD
+  BANK
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id               Int               @id @default(autoincrement())
+  email            String            @unique
+  password         String
+  role             Role              @default(CUSTOMER)
+  fullName         String
+  phoneNumber      String?
+  profilePic       String?
+  country          String?           // ISO alpha-2
+  region           String?           // State/Province/Region
+  city             String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  driverProfile    DriverProfile?
+  customerProfile  CustomerProfile?
+  driverRides      Ride[]            @relation("RideDriver")
+  customerRides    Ride[]            @relation("RideCustomer")
+  vehicles         CustomerVehicle[]  @relation("CustomerVehicles")
+  wallet           Wallet?
+  transactions     Transaction[]
+  bankAccount      BankAccount?
+  invoices         Invoice[]
+  refundLogs       RefundLog[]       @relation("RefundedByDriver")
+  receivedRefunds  RefundLog[]       @relation("RefundedToCustomer")
+  refundRequests   RefundRequest[]
+  reviewedRefunds  RefundRequest[]   @relation("ReviewedByAdmin")
+}
+
+model DriverProfile {
+  id                 Int                @id @default(autoincrement())
+  userId             Int                @unique
+  user               User               @relation(fields: [userId], references: [id])
+  licenseUrl         String?
+  insuranceUrl       String?
+  vehiclePhotos      String[]
+  truckType          String?
+  truckCapacity      String?
+  truckPhotos        String[]
+  languages          String[]
+  termsAccepted      Boolean            @default(false)
+  ratings            Float?             @default(0.0)
+  billingType        String?            @default("N/A")
+  registrationStatus RegistrationStatus @default(PENDING)
+  totalEarnings      Float?             @default(0.0)
+  experience         Int?               @default(0)
+  bankName           String?
+  iban               String?
+  swiftCode          String?
+  taxProfile         DriverTaxProfile?
+}
+
+model DriverTaxProfile {
+  id              Int           @id @default(autoincrement())
+  driverId        Int           @unique
+  driverProfile   DriverProfile @relation(fields: [driverId], references: [id])
+  taxId           String?
+  taxDocumentUrl  String?
+  taxRate         Float?
+  taxCountry      String?
+  taxRegion       String?
+  legalName       String?
+  ssnOrEin        String?
+  mailingAddress  String?
+  consent1099     Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model CustomerProfile {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique
+  user             User     @relation(fields: [userId], references: [id])
+  defaultAddress   String?
+  termsAccepted    Boolean  @default(false)
+  totalOrders      Int      @default(0)
+  totalAmountSpent Float    @default(0.0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model CustomerVehicle {
+  id          Int      @id @default(autoincrement())
+  customerId  Int
+  customer    User     @relation("CustomerVehicles", fields: [customerId], references: [id])
+  plateNumber String
+  vehicleType String
+  color       String
+  photos      String[]
+  beforeRidePhotos String[]
+  afterRidePhotos  String[]
+  isDefault   Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rides       Ride[]
+}
+
+model LocationUpdate {
+  id                   Int      @id @default(autoincrement())
+  rideId              Int
+  ride                Ride     @relation("RideLocations", fields: [rideId], references: [id])
+  latitude            Float
+  longitude           Float
+  timestamp           DateTime  @default(now())
+  speed               Float?
+  heading             Float?
+  accuracy            Float?
+  isLastKnown         Boolean   @default(false)
+  lastLocationForRide Ride?    @relation("LastLocation")
+  lastLocationForRideId Int?    @unique
+}
+
+model Ride {
+  id                Int             @id @default(autoincrement())
+  driverId         Int?            // Make driverId optional for scheduled rides
+  driver           User?           @relation("RideDriver", fields: [driverId], references: [id])
+  customerId       Int
+  customer         User            @relation("RideCustomer", fields: [customerId], references: [id])
+  vehicleId        Int?
+  vehicle          CustomerVehicle? @relation(fields: [vehicleId], references: [id])
+  pickupLocation   String
+  dropoffLocation  String
+  pickupDateTime   DateTime
+  dropoffDateTime  DateTime?
+  expectedDropoff  DateTime?
+  estimatedDistance Float?
+  actualDistance   Float?
+  basePrice        Float?
+  extraMiles       Float?
+  totalPrice       Float?
+  status           RideStatus      @default(PENDING)
+  notes            String?
+  cancellationReason String?
+  isScheduled      Boolean         @default(false)
+  scheduledDate    DateTime?       // The date the ride is scheduled for
+  driverAcceptedAt DateTime?       // When the driver accepted the ride
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  refundRequests   RefundRequest[]
+  refundLogs       RefundLog[]
+  locationUpdates  LocationUpdate[] @relation("RideLocations")
+  lastLocation     LocationUpdate? @relation("LastLocation", fields: [lastLocationId], references: [id])
+  lastLocationId   Int?           @unique
+}
+
+model Wallet {
+  id          Int           @id @default(autoincrement())
+  userId      Int           @unique
+  user        User          @relation(fields: [userId], references: [id])
+  balance     Float         @default(0.0)
+  currency    String        @default("USD")
+  transactions Transaction[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Transaction {
+  id            Int               @id @default(autoincrement())
+  walletId      Int
+  wallet        Wallet           @relation(fields: [walletId], references: [id])
+  userId        Int
+  user          User             @relation(fields: [userId], references: [id])
+  amount        Float
+  type          TransactionType
+  status        TransactionStatus @default(PENDING)
+  method        PaymentMethod
+  description   String?
+  reference     String?
+  bankName      String?
+  accountNumber String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model BankAccount {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  user          User     @relation(fields: [userId], references: [id])
+  bankName      String
+  accountNumber String
+  routingNumber String?
+  iban          String?
+  swiftCode     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Invoice {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  user        User          @relation(fields: [userId], references: [id])
+  amount      Float
+  status      InvoiceStatus @default(PENDING)
+  dueDate     DateTime
+  paidDate    DateTime?
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model RefundRequest {
+  id             Int          @id @default(autoincrement())
+  rideId         Int
+  ride           Ride         @relation(fields: [rideId], references: [id])
+  customerId     Int
+  customer       User         @relation(fields: [customerId], references: [id])
+  reason         String
+  evidencePhotos String[]
+  status         RefundStatus @default(PENDING)
+  reviewedById   Int?
+  reviewedBy     User?        @relation("ReviewedByAdmin", fields: [reviewedById], references: [id])
+  reviewNotes    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model RefundLog {
+  id           Int      @id @default(autoincrement())
+  rideId       Int
+  ride         Ride     @relation(fields: [rideId], references: [id])
+  driverId     Int
+  driver       User     @relation("RefundedByDriver", fields: [driverId], references: [id])
+  customerId   Int
+  customer     User     @relation("RefundedToCustomer", fields: [customerId], references: [id])
+  amount       Float
+  reason       String
+  createdAt    DateTime @default(now())
+}
+
+model PricingSetting {
+  id           Int      @id @default(autoincrement())
+  basePrice    Float    @default(50.00)
+  baseMiles    Float    @default(5.0)
+  pricePerMile Float    @default(2.50)
+  createdAt    DateTime @default(now())
+}
