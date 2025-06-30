@@ -9,7 +9,7 @@ export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
   @Get('all-transactions')
-  @Roles(Role.SUPER_ADMIN, Role.LIMITED_ADMIN)
+  @Roles(Role.ADMIN, Role.MODERATOR)
   async getAllTransactions(
     @Query('skip') skip?: string,
     @Query('take') take?: string

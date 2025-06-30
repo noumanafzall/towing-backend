@@ -3,6 +3,7 @@ import { RefundRequestsService } from './refund-requests.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guards';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { Role } from '@prisma/client';
 
 @Controller('refund-requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -10,13 +11,13 @@ export class RefundRequestsController {
   constructor(private readonly refundRequestsService: RefundRequestsService) {}
 
   @Get()
-  @Roles('SUPER_ADMIN', 'LIMITED_ADMIN')
+  @Roles(Role.ADMIN, Role.MODERATOR)
   async getRefundRequests(@Query('status') status?: string) {
     return this.refundRequestsService.getRefundRequests(status);
   }
 
   @Put(':id/review')
-  @Roles('SUPER_ADMIN', 'LIMITED_ADMIN')
+  @Roles(Role.ADMIN, Role.MODERATOR)
   async reviewRefundRequest(
     @Param('id') id: string,
     @Body() data: { status: string; reviewNotes: string },

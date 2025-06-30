@@ -24,7 +24,7 @@ async function createAdmin() {
       data: {
         email: adminEmail,
         password: hashedPassword,
-        role: 'SUPER_ADMIN',
+        role: 'ADMIN',
         fullName: 'System Admin',
         phoneNumber: '+1234567890',
       },

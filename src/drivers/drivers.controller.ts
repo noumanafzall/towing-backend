@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Body, Param, Query, ParseIntPipe, BadReques
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { DriversService } from './drivers.service';
 import { RegistrationStatus } from '@prisma/client';
+import { UpdateDriverProfileDto } from './dtos/update-driver-profile.dto';
 import * as multer from 'multer';
 import * as path from 'path';
 
@@ -71,10 +72,10 @@ export class DriversController {
 
   @Put(':id/profile')
   async updateDriverProfile(
-    @Param('id') id: string,
-    @Body() profileData: any
+    @Param('id', ParseIntPipe) id: number,
+    @Body() profileData: UpdateDriverProfileDto
   ) {
-    return this.driversService.updateDriverProfile(parseInt(id), profileData);
+    return this.driversService.updateDriverProfile(id, profileData);
   }
 
   @Put(':id/tax-profile')

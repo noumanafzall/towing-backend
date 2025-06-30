@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, IsArray } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum RideStatus {
   PENDING = 'PENDING',
@@ -7,6 +8,38 @@ export enum RideStatus {
   ONGOING = 'ONGOING',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
+}
+
+export class VehicleDetailsDto {
+  @IsString()
+  @IsNotEmpty()
+  plateNumber: string;
+
+  @IsString()
+  @IsNotEmpty()
+  vehicleType: string;
+
+  @IsString()
+  @IsNotEmpty()
+  vehicleModel: string;
+
+  @IsString()
+  @IsNotEmpty()
+  vehicleColor: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  beforeRidePhotos?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  afterRidePhotos?: string[];
 }
 
 export class CreateRideDto {
@@ -18,9 +51,11 @@ export class CreateRideDto {
   @IsNotEmpty()
   customerId: number;
 
-  @IsNumber()
-  @IsOptional()
-  vehicleId?: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => VehicleDetailsDto)
+  @ArrayMinSize(1)
+  vehicles: VehicleDetailsDto[];
 
   @IsString()
   @IsNotEmpty()
@@ -53,12 +88,4 @@ export class CreateRideDto {
   @IsString()
   @IsOptional()
   notes?: string;
-
-  @IsArray()
-  @IsOptional()
-  beforeRidePhotos?: string[];
-
-  @IsArray()
-  @IsOptional()
-  afterRidePhotos?: string[];
 }

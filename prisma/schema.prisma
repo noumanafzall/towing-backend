@@ -10,8 +10,8 @@ datasource db {
 enum Role {
   DRIVER
   CUSTOMER
-  SUPER_ADMIN
-  LIMITED_ADMIN
+  ADMIN
+  MODERATOR
 }
 
 enum RegistrationStatus {
@@ -82,7 +82,6 @@ model User {
   customerProfile  CustomerProfile?
   driverRides      Ride[]            @relation("RideDriver")
   customerRides    Ride[]            @relation("RideCustomer")
-  vehicles         CustomerVehicle[]  @relation("CustomerVehicles")
   wallet           Wallet?
   transactions     Transaction[]
   bankAccount      BankAccount?
@@ -91,6 +90,7 @@ model User {
   receivedRefunds  RefundLog[]       @relation("RefundedToCustomer")
   refundRequests   RefundRequest[]
   reviewedRefunds  RefundRequest[]   @relation("ReviewedByAdmin")
+  driverEarnings   DriverEarning[]   // Add relation to DriverEarning
 }
 
 model DriverProfile {
@@ -145,22 +145,6 @@ model CustomerProfile {
   updatedAt        DateTime @updatedAt
 }
 
-model CustomerVehicle {
-  id          Int      @id @default(autoincrement())
-  customerId  Int
-  customer    User     @relation("CustomerVehicles", fields: [customerId], references: [id])
-  plateNumber String
-  vehicleType String
-  color       String
-  photos      String[]
-  beforeRidePhotos String[]
-  afterRidePhotos  String[]
-  isDefault   Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  rides       Ride[]
-}
-
 model LocationUpdate {
   id                   Int      @id @default(autoincrement())
   rideId              Int
@@ -182,8 +166,7 @@ model Ride {
   driver           User?           @relation("RideDriver", fields: [driverId], references: [id])
   customerId       Int
   customer         User            @relation("RideCustomer", fields: [customerId], references: [id])
-  vehicleId        Int?
-  vehicle          CustomerVehicle? @relation(fields: [vehicleId], references: [id])
+  vehicles         RideVehicle[]   // One ride can have multiple vehicles
   pickupLocation   String
   dropoffLocation  String
   pickupDateTime   DateTime
@@ -194,6 +177,8 @@ model Ride {
   basePrice        Float?
   extraMiles       Float?
   totalPrice       Float?
+  driverShare      Float?          // Driver's share of the total price
+  platformFee      Float?          // Platform's fee
   status           RideStatus      @default(PENDING)
   notes            String?
   cancellationReason String?
@@ -207,6 +192,25 @@ model Ride {
   locationUpdates  LocationUpdate[] @relation("RideLocations")
   lastLocation     LocationUpdate? @relation("LastLocation", fields: [lastLocationId], references: [id])
   lastLocationId   Int?           @unique
+  driverEarning    DriverEarning?
+}
+
+// New model for vehicles in a ride
+model RideVehicle {
+  id              Int      @id @default(autoincrement())
+  rideId          Int
+  ride            Ride     @relation(fields: [rideId], references: [id])
+  plateNumber     String
+  vehicleType     String
+  vehicleModel    String
+  vehicleColor    String
+  description     String?  // Optional description field
+  beforeRidePhotos String[]
+  afterRidePhotos  String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([rideId])
 }
 
 model Wallet {
@@ -299,4 +303,23 @@ model PricingSetting {
   baseMiles    Float    @default(5.0)
   pricePerMile Float    @default(2.50)
   createdAt    DateTime @default(now())
+}
+
+// New model to track driver earnings per ride
+model DriverEarning {
+  id              Int      @id @default(autoincrement())
+  rideId          Int      @unique
+  ride            Ride     @relation(fields: [rideId], references: [id])
+  driverId        Int
+  driver          User     @relation(fields: [driverId], references: [id])
+  amount          Float    // Amount earned from this ride
+  platformFee     Float    // Platform fee for this ride
+  taxAmount       Float?   // Tax amount if applicable
+  netAmount       Float    // Net amount after platform fee and taxes
+  isPaid          Boolean  @default(false)
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([driverId])
 }

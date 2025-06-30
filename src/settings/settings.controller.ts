@@ -14,7 +14,7 @@ export class SettingsController {
   }
 
   @Put('pricing')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   async updatePricingSettings(@Body() data: PricingSettingDto) {
     return this.settingsService.updatePricingSettings(data);
   }
