@@ -1,11 +1,18 @@
 import { Controller, Get, Post, Put, Body, Param, UseGuards, Query, ParseIntPipe, Request, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { RidesService } from './rides.service';
-import { CreateRideDto, RideStatus } from './dtos/create-ride.dto';
+import { CreateRideDto, RideStatus, CreateRideRequestDto, RideRequestStatus } from './dtos/create-ride.dto';
 import { UpdateVehiclePhotosDto } from './dtos/update-vehicle-photos.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guards';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { Role } from '@prisma/client';
+import { Request as ExpressRequest } from 'express';
+
+interface RequestWithUser extends ExpressRequest {
+  user: {
+    userId: number;
+    role: string;
+  };
+}
 
 @Controller('rides')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,9 +20,89 @@ export class RidesController {
   constructor(private readonly ridesService: RidesService) {}
 
   @Post()
+  @Roles('CUSTOMER')
+  async createRide(@Body() createRideDto: CreateRideDto, @Request() req: RequestWithUser) {
+    console.log('Create ride request from user:', {
+      userId: req.user.userId,
+      role: req.user.role,
+      endpoint: 'createRide'
+    });
+    console.log('Request body:', JSON.stringify(createRideDto, null, 2));
+
+    // If customer is creating the ride, use their ID
+    if (req.user.role === 'CUSTOMER') {
+      console.log('Setting customerId from authenticated user:', req.user.userId);
+      createRideDto.customerId = req.user.userId;
+    }
+
+    try {
+      const result = await this.ridesService.createRide(createRideDto);
+      console.log('Ride created successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error creating ride:', {
+        error: error.message,
+        stack: error.stack,
+        response: error.response,
+        constraints: error.constraints,
+        validation: error.errors
+      });
+      throw error;
+    }
+  }
+
+  @Post('request')
+  @Roles('CUSTOMER')
+  async createRideRequest(@Body() createRideRequestDto: CreateRideRequestDto, @Request() req: RequestWithUser) {
+    console.log('Create ride request from user:', {
+      userId: req.user.userId,
+      role: req.user.role,
+      endpoint: 'createRideRequest'
+    });
+    console.log('Request body:', JSON.stringify(createRideRequestDto, null, 2));
+
+    try {
+      const result = await this.ridesService.createRide({
+        ...createRideRequestDto,
+        customerId: req.user.userId,
+        driverId: null,
+        rideRequestId: null
+      });
+      console.log('Ride request created successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error creating ride request:', {
+        error: error.message,
+        stack: error.stack,
+        response: error.response,
+        constraints: error.constraints,
+        validation: error.errors
+      });
+      throw error;
+    }
+  }
+
+  @Get('requests/available')
   @Roles('DRIVER')
-  async createRide(@Body() createRideDto: CreateRideDto) {
-    return this.ridesService.createRide(createRideDto);
+  async getAvailableRideRequests(
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+    @Query('includeScheduled') includeScheduled?: string
+  ) {
+    return this.ridesService.getAvailableRides(
+      skip ? parseInt(skip) : undefined,
+      take ? parseInt(take) : undefined,
+      includeScheduled === 'true'
+    );
+  }
+
+  @Post('request/:id/accept')
+  @Roles('DRIVER')
+  async acceptRideRequest(
+    @Param('id', ParseIntPipe) requestId: number,
+    @Request() req: RequestWithUser
+  ) {
+    return this.ridesService.acceptRide(requestId, req.user.userId);
   }
 
   @Put(':id/vehicle-photos')
@@ -29,16 +116,16 @@ export class RidesController {
   }
 
   @Get(':id')
-  @Roles('DRIVER')
+  @Roles('DRIVER', 'CUSTOMER')
   async getRide(
     @Param('id', ParseIntPipe) id: number,
     @Request() req
   ) {
-    return this.ridesService.getRide(id, req.user.id);
+    return this.ridesService.getRide(id, req.user.userId, req.user.role);
   }
 
   @Get()
-  @Roles('DRIVER')
+  @Roles('DRIVER', 'CUSTOMER')
   async getRides(
     @Request() req,
     @Query('skip') skip?: string,
@@ -46,10 +133,11 @@ export class RidesController {
     @Query('status') status?: RideStatus
   ) {
     return this.ridesService.getRides(
-      req.user.id,
+      req.user.userId,
       skip ? parseInt(skip) : undefined,
       take ? parseInt(take) : undefined,
-      status
+      status,
+      req.user.role
     );
   }
 

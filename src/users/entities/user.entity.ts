@@ -1,4 +1,9 @@
-import { Role } from '@prisma/client';
+export enum Role {
+  DRIVER = 'DRIVER',
+  CUSTOMER = 'CUSTOMER',
+  ADMIN = 'ADMIN',
+  MODERATOR = 'MODERATOR'
+}
 
 export class User {
   id: number;

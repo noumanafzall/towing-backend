@@ -68,7 +68,7 @@ model User {
   id               Int               @id @default(autoincrement())
   email            String            @unique
   password         String
-  role             Role              @default(CUSTOMER)
+  role             String
   fullName         String
   phoneNumber      String?
   profilePic       String?
@@ -80,8 +80,8 @@ model User {
 
   driverProfile    DriverProfile?
   customerProfile  CustomerProfile?
-  driverRides      Ride[]            @relation("RideDriver")
-  customerRides    Ride[]            @relation("RideCustomer")
+  ridesAsDriver    Ride[]            @relation("DriverRides")
+  ridesAsCustomer  Ride[]            @relation("CustomerRides")
   wallet           Wallet?
   transactions     Transaction[]
   bankAccount      BankAccount?
@@ -91,6 +91,7 @@ model User {
   refundRequests   RefundRequest[]
   reviewedRefunds  RefundRequest[]   @relation("ReviewedByAdmin")
   driverEarnings   DriverEarning[]   // Add relation to DriverEarning
+  rideRequests     RideRequest[]     // Add this line
 }
 
 model DriverProfile {
@@ -160,39 +161,72 @@ model LocationUpdate {
   lastLocationForRideId Int?    @unique
 }
 
+model RideRequest {
+  id              Int               @id @default(autoincrement())
+  customerId      Int
+  customer        User              @relation(fields: [customerId], references: [id])
+  pickupLocation  String
+  dropoffLocation String
+  pickupDateTime  DateTime
+  status          String            @default("PENDING") // RideRequestStatus
+  vehicles        VehicleRequest[]
+  estimatedDistance Float?
+  basePrice       Float?
+  totalPrice      Float?
+  notes           String?
+  expiresAt       DateTime
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  ride            Ride?             // The actual ride if request is accepted
+}
+
+model VehicleRequest {
+  id              Int         @id @default(autoincrement())
+  rideRequestId   Int
+  rideRequest     RideRequest @relation(fields: [rideRequestId], references: [id])
+  plateNumber     String
+  vehicleType     String
+  vehicleModel    String
+  vehicleColor    String
+  description     String?
+}
+
 model Ride {
   id                Int             @id @default(autoincrement())
-  driverId         Int?            // Make driverId optional for scheduled rides
-  driver           User?           @relation("RideDriver", fields: [driverId], references: [id])
-  customerId       Int
-  customer         User            @relation("RideCustomer", fields: [customerId], references: [id])
-  vehicles         RideVehicle[]   // One ride can have multiple vehicles
-  pickupLocation   String
-  dropoffLocation  String
-  pickupDateTime   DateTime
-  dropoffDateTime  DateTime?
-  expectedDropoff  DateTime?
+  driverId          Int?            // Make driverId optional for scheduled rides
+  driver            User?           @relation("DriverRides", fields: [driverId], references: [id])
+  customerId        Int
+  customer          User            @relation("CustomerRides", fields: [customerId], references: [id])
+  rideRequest       RideRequest?    @relation(fields: [rideRequestId], references: [id])
+  rideRequestId     Int?            @unique
+  pickupLocation    String
+  dropoffLocation   String
+  pickupDateTime    DateTime
+  dropoffDateTime   DateTime?
+  expectedDropoff   DateTime?
+  actualDropoff     DateTime?
   estimatedDistance Float?
-  actualDistance   Float?
-  basePrice        Float?
-  extraMiles       Float?
-  totalPrice       Float?
-  driverShare      Float?          // Driver's share of the total price
-  platformFee      Float?          // Platform's fee
-  status           RideStatus      @default(PENDING)
-  notes            String?
+  actualDistance    Float?
+  basePrice         Float?
+  extraMiles        Float?
+  totalPrice        Float?
+  driverShare       Float?          // Driver's share of the total price
+  platformFee       Float?          // Platform's fee
+  status            String          @default("PENDING") // RideStatus
+  notes             String?
   cancellationReason String?
-  isScheduled      Boolean         @default(false)
-  scheduledDate    DateTime?       // The date the ride is scheduled for
-  driverAcceptedAt DateTime?       // When the driver accepted the ride
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  refundRequests   RefundRequest[]
-  refundLogs       RefundLog[]
-  locationUpdates  LocationUpdate[] @relation("RideLocations")
-  lastLocation     LocationUpdate? @relation("LastLocation", fields: [lastLocationId], references: [id])
-  lastLocationId   Int?           @unique
-  driverEarning    DriverEarning?
+  isScheduled       Boolean         @default(false)
+  scheduledDate     DateTime?       // The date the ride is scheduled for
+  driverAcceptedAt  DateTime?       // When the driver accepted the ride
+  vehicles          RideVehicle[]
+  driverEarning     DriverEarning?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  refundRequests    RefundRequest[]
+  refundLogs        RefundLog[]
+  locationUpdates   LocationUpdate[] @relation("RideLocations")
+  lastLocation      LocationUpdate? @relation("LastLocation", fields: [lastLocationId], references: [id])
+  lastLocationId    Int?            @unique
 }
 
 // New model for vehicles in a ride

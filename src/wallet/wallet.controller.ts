@@ -2,7 +2,10 @@ import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { PaymentMethod } from '@prisma/client';
 import { Roles } from '../auth/roles.decorator';
-import { Role } from '@prisma/client';
+import { Role } from '../users/entities/user.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guards';
+import { RolesGuard } from '../auth/roles.guard';
+import { UseGuards, Request } from '@nestjs/common';
 
 @Controller('wallet')
 export class WalletController {

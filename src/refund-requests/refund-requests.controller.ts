@@ -3,7 +3,7 @@ import { RefundRequestsService } from './refund-requests.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guards';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
-import { Role } from '@prisma/client';
+import { Role } from '../users/entities/user.entity';
 
 @Controller('refund-requests')
 @UseGuards(JwtAuthGuard, RolesGuard)

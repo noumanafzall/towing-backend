@@ -1,9 +1,11 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { Prisma, RegistrationStatus, Role } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import * as path from 'path';
 import { EncryptionService } from '../utils/encryption.service';
+import { Role } from '../users/entities/user.entity';
+import { RegistrationStatus } from '@prisma/client';
 
 @Injectable()
 export class DriversService {

@@ -1,8 +1,10 @@
-import { Controller, Get, Put, Body } from '@nestjs/common';
+import { Controller, Get, Put, Body, Post, UseGuards } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { PricingSettingDto } from './dtos/pricing-setting.dto';
 import { Roles } from '../auth/roles.decorator';
-import { Role } from '@prisma/client';
+import { Role } from '../users/entities/user.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guards';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('settings')
 export class SettingsController {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateCustomerProfileDto } from './dtos/update-customer-profile.dto';
 
@@ -31,36 +31,65 @@ export class CustomersService {
   }
 
   async updateCustomerProfile(id: number, userId: number, profileData: UpdateCustomerProfileDto) {
+    // Convert string IDs to numbers for comparison
+    const customerId = Number(id);
+    const authenticatedUserId = Number(userId);
+
+    console.log('Service - Customer ID:', customerId);
+    console.log('Service - Auth User ID:', authenticatedUserId);
+    console.log('Service - Types:', { 
+      customerIdType: typeof customerId,
+      authUserIdType: typeof authenticatedUserId
+    });
+
     // Verify the customer ID matches the authenticated user
-    if (id !== userId) {
-      throw new BadRequestException('You can only update your own profile');
+    if (customerId !== authenticatedUserId) {
+      console.log('Service - ID mismatch:', { customerId, authenticatedUserId });
+      throw new UnauthorizedException('You can only update your own profile');
     }
 
     const customer = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id: customerId },
       include: {
         customerProfile: true
       }
     });
 
-    if (!customer || customer.role !== 'CUSTOMER') {
-      throw new NotFoundException(`Customer with ID ${id} not found`);
+    if (!customer) {
+      throw new NotFoundException(`Customer with ID ${customerId} not found`);
     }
 
-    // Separate user data and customer profile data
-    const { user: userData, ...customerProfileData } = profileData;
+    if (customer.role !== 'CUSTOMER') {
+      throw new UnauthorizedException('Only customers can update their profiles');
+    }
+
+    // Update user data
+    const updateData: any = {};
+    
+    if (profileData.user) {
+      // Only update allowed user fields
+      const { fullName, phoneNumber, country, city } = profileData.user;
+      Object.assign(updateData, {
+        fullName,
+        phoneNumber,
+        country,
+        city
+      });
+    }
+
+    // Update customer profile data
+    if (profileData.defaultAddress !== undefined) {
+      updateData.customerProfile = {
+        update: {
+          defaultAddress: profileData.defaultAddress
+        }
+      };
+    }
 
     // Update both user and customer profile
     return this.prisma.user.update({
-      where: { id },
-      data: {
-        ...userData,
-        customerProfile: {
-          update: {
-            ...customerProfileData
-          }
-        }
-      },
+      where: { id: customerId },
+      data: updateData,
       include: {
         customerProfile: true
       }

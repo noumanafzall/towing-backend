@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, IsArray, ValidateNested, ArrayMinSize, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum RideStatus {
@@ -7,6 +7,13 @@ export enum RideStatus {
   SCHEDULED = 'SCHEDULED',
   ONGOING = 'ONGOING',
   COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export enum RideRequestStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED'
 }
 
@@ -42,21 +49,7 @@ export class VehicleDetailsDto {
   afterRidePhotos?: string[];
 }
 
-export class CreateRideDto {
-  @IsNumber()
-  @IsOptional()
-  driverId?: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  customerId: number;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => VehicleDetailsDto)
-  @ArrayMinSize(1)
-  vehicles: VehicleDetailsDto[];
-
+export class CreateRideRequestDto {
   @IsString()
   @IsNotEmpty()
   pickupLocation: string;
@@ -73,6 +66,12 @@ export class CreateRideDto {
   @IsOptional()
   expectedDropoff?: string;
 
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => VehicleDetailsDto)
+  @ArrayMinSize(1)
+  vehicles: VehicleDetailsDto[];
+
   @IsNumber()
   @IsOptional()
   estimatedDistance?: number;
@@ -88,4 +87,22 @@ export class CreateRideDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isScheduled?: boolean = false;
+}
+
+export class CreateRideDto extends CreateRideRequestDto {
+  @IsNumber()
+  @IsNotEmpty()
+  customerId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  driverId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  rideRequestId: number;
 }

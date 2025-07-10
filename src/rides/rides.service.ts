@@ -13,16 +13,18 @@ export class RidesService {
     });
     if (!customer) throw new NotFoundException('Customer not found');
 
-    // Check if this is a scheduled ride
+    // Validate pickup time for scheduled rides only
     const pickupDate = new Date(dto.pickupDateTime);
-    const isScheduled = pickupDate > new Date();
-
-    // For scheduled rides, we don't require a driver immediately
-    if (!isScheduled && !dto.driverId) {
-      throw new BadRequestException('Driver ID is required for immediate rides');
+    const now = new Date();
+    
+    if (dto.isScheduled) {
+      // For scheduled rides, pickup time must be in the future
+      if (pickupDate <= now) {
+        throw new BadRequestException('Scheduled rides must have a future pickup time');
+      }
     }
 
-    // If driver ID is provided, verify driver exists
+    // If driver ID is provided (e.g., by admin), verify driver exists
     if (dto.driverId) {
       const driver = await this.prisma.user.findUnique({
         where: { id: dto.driverId },
@@ -34,7 +36,7 @@ export class RidesService {
       // Create the ride with vehicles
       const ride = await this.prisma.ride.create({
         data: {
-          driverId: isScheduled ? null : dto.driverId,
+          driverId: dto.driverId || null, // Allow null driver ID for new rides
           customerId: dto.customerId,
           pickupLocation: dto.pickupLocation,
           dropoffLocation: dto.dropoffLocation,
@@ -43,10 +45,10 @@ export class RidesService {
           estimatedDistance: dto.estimatedDistance,
           basePrice: dto.basePrice,
           totalPrice: dto.totalPrice,
-          status: isScheduled ? RideStatus.SCHEDULED : RideStatus.PENDING,
+          status: dto.isScheduled ? RideStatus.SCHEDULED : RideStatus.PENDING,
           notes: dto.notes,
-          isScheduled,
-          scheduledDate: isScheduled ? pickupDate : null,
+          isScheduled: dto.isScheduled || false,
+          scheduledDate: dto.isScheduled ? pickupDate : null,
           vehicles: {
             create: dto.vehicles.map(vehicle => ({
               plateNumber: vehicle.plateNumber,
@@ -97,12 +99,12 @@ export class RidesService {
       const now = new Date();
       const scheduledDate = new Date(ride.scheduledDate);
       
-      // Allow accepting scheduled rides 24 hours before the scheduled time
+      // Allow accepting scheduled rides 1 hour before the scheduled time
       const acceptanceWindow = new Date(scheduledDate);
-      acceptanceWindow.setHours(acceptanceWindow.getHours() - 24);
+      acceptanceWindow.setHours(acceptanceWindow.getHours() - 1);
       
       if (now < acceptanceWindow) {
-        throw new BadRequestException('Too early to accept this scheduled ride');
+        throw new BadRequestException('Too early to accept this scheduled ride. Scheduled rides can be accepted 1 hour before pickup time.');
       }
     }
 
@@ -123,6 +125,8 @@ export class RidesService {
 
   async getAvailableRides(skip = 0, take = 10, includeScheduled = false) {
     const now = new Date();
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour window
+
     const where = {
       OR: [
         // Immediate rides that are pending
@@ -135,7 +139,8 @@ export class RidesService {
           status: RideStatus.SCHEDULED,
           isScheduled: true,
           scheduledDate: {
-            lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) // Next 24 hours
+            gte: now,
+            lte: oneHourFromNow
           }
         }] : [])
       ],
@@ -163,7 +168,7 @@ export class RidesService {
     return { rides, total };
   }
 
-  async getRide(id: number, userId: number) {
+  async getRide(id: number, userId: number, role?: string) {
     const ride = await this.prisma.ride.findUnique({
       where: { id },
       include: {
@@ -177,8 +182,13 @@ export class RidesService {
       throw new NotFoundException('Ride not found');
     }
 
-    // Check if user is either the driver or customer of this ride
-    if (ride.customerId !== userId && ride.driverId !== userId) {
+    // For customers, they can only view their own rides
+    if (role === 'CUSTOMER' && ride.customerId !== userId) {
+      throw new ForbiddenException('You do not have permission to view this ride');
+    }
+
+    // For drivers, they can only view their assigned rides or rides with no driver
+    if (role === 'DRIVER' && ride.driverId !== userId && ride.driverId !== null) {
       throw new ForbiddenException('You do not have permission to view this ride');
     }
 
@@ -302,32 +312,59 @@ export class RidesService {
     };
   }
 
-  async getRides(userId: number, skip?: number, take?: number, status?: RideStatus) {
-    const where = {
-      AND: [
-        status ? { status } : {},
-        {
-          OR: [
-            { customerId: userId },
-            { driverId: userId }
-          ]
-        }
-      ]
-    };
+  async getRides(userId: number, skip?: number, take?: number, status?: RideStatus, role?: string) {
+    let where: any = {};
+
+    // For customers, only show their rides
+    if (role === 'CUSTOMER') {
+      where = {
+        customerId: userId,
+        ...(status ? { status } : {})
+      };
+    }
+    // For drivers, show their assigned rides
+    else if (role === 'DRIVER') {
+      where = {
+        driverId: userId,
+        ...(status ? { status } : {})
+      };
+    }
+    // For admin/other roles, show all rides they're involved in
+    else {
+      where = {
+        OR: [
+          { customerId: userId },
+          { driverId: userId }
+        ],
+        ...(status ? { status } : {})
+      };
+    }
     
-    return this.prisma.ride.findMany({
-      where,
-      skip,
-      take,
-      include: {
-        driver: true,
-        customer: true,
-        vehicles: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const [rides, total] = await Promise.all([
+      this.prisma.ride.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          driver: true,
+          customer: true,
+          vehicles: true
+        },
+        orderBy: [
+          { isScheduled: 'desc' },
+          { scheduledDate: 'desc' },
+          { createdAt: 'desc' }
+        ]
+      }),
+      this.prisma.ride.count({ where })
+    ]);
+
+    return {
+      rides,
+      total,
+      skip: skip || 0,
+      take: take || 10
+    };
   }
 
   async updateAfterRidePhotos(rideId: number, vehicleId: number, afterRidePhotos: string[], driverId: number) {

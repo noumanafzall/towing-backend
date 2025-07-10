@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Param, ParseIntPipe, UseGuards, Body, Req } from '@nestjs/common';
+import { Controller, Get, Put, Param, ParseIntPipe, UseGuards, Body, Req, UnauthorizedException } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guards';
 import { RolesGuard } from '../auth/roles.guard';
@@ -30,6 +30,14 @@ export class CustomersController {
     @Body() profileData: UpdateCustomerProfileDto,
     @Req() req
   ) {
-    return this.customersService.updateCustomerProfile(id, req.user.id, profileData);
+    if (!req.user || !req.user.userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    if (Number(id) !== Number(req.user.userId)) {
+      throw new UnauthorizedException('You can only update your own profile');
+    }
+
+    return this.customersService.updateCustomerProfile(id, req.user.userId, profileData);
   }
 }
